@@ -39,7 +39,7 @@
 #define     EVENT_IS_CONNECTION     "0x4"   /* Event sent to see if still BT connection */
 
 #define     IS_CONNECTION_CHECK_MS  10000   /* How often to check the BT connection */
-#define     CHECK_BT_CONNECTION     0
+#define     CHECK_BT_CONNECTION     1
 
 enum TState {
     CLOSED = 0,
