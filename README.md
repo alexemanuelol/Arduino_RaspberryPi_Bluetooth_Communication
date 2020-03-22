@@ -8,6 +8,16 @@ Bluetooth communication between two arduino uno/ nano
 - "0x4" can be sent from the raspberry pi to check if the bluetooth connection to the Arduino Nano is still present (Only when Arduino Nano is in "waitForConnectionEstablished" mode).
 - "0x4" can also be sent from the Arduino Nano to see if the connection is still present (This happens every 10 seconds).
 
+## Raspberry Pi Bluetooth Controller
+
+### Requirements
+
+```
+sudo apt-get install libbluetooth-dev
+sudo apt-get install python-dev
+sudo pip install PyBluez
+```
+
 
 ## HC-05 - Bluetooth Module
 [HC-05 - Bluetooth Module link](https://components101.com/wireless/hc-05-bluetooth-module)
