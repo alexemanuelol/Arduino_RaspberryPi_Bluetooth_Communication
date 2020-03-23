@@ -1,14 +1,21 @@
 /*
  *      Author:     Alexander Emanuelsson
  *
- *      Brief:      Source code for Arduino Nano door detector
+ *      Brief:      Source code for Arduino door detector
  *
- *      Usage:      When connected to the raspberry pi via bluetooth, the raspberry pi will send "0x1"
- *                  indicating that it want to start a connection. When Arduino Nano detects this event
- *                  it will enter listen mode for the sensor and send "0x2" when the door opens, "0x3"
- *                  when the door closes. "0x4" can be sent from the raspberry pi to check if the bluetooth
- *                  connection to the Arduino Nano is still present. It can also be sent from the Arduino
- *                  Nano to see if the connection is still present.
+ *      Usage:      When connected to the raspberry Pi via bluetooth, the Raspberry Pi can send "0x1",
+ *                  indicating that it want to start a connection, or it can send "0x4", indicating that
+ *                  it want to check if it is connected to the Arduino. The Arduino will respond with "OK\r\n".
+ *
+ *                  When Arduino detects the connection event, it will turn the RGB LED green and enter
+ *                  listening mode. In listening mode, the Arduino will wait for the reed switch to be
+ *                  active/ inactive. When active, "0x2" will be sent to the Raspberry Pi, indicating that
+ *                  the door opened. Raspberry Pi will respond with "OK\r\n". When inactive, "0x3" will be sent
+ *                  to the Raspberry Pi, indicating that the door closed. Raspberry Pi will respond with "OK\r\n".
+ *
+ *                  During runtime, the Arduino will send "0x4" every 10 second in which the Raspberry Pi must
+ *                  answer "OK\r\n". If the answer is not provided, the Arduino will enter
+ *                  waitForConnectionEstablished function and the RGB LED will become red.
  */
 
 #include <SoftwareSerial.h>
@@ -20,9 +27,9 @@
 #define     MAX_BUFFER              100
 #define     RECEIVE_TIMEOUT_MS      3000
 
-#define     BUTTON_PIN              4
+#define     SWITCH_PIN              4       /* Reed Switch & Debug Button Switch*/
 
-#define     LED_PIN                 13      /* LED on Arduino Nano */
+#define     LED_PIN                 13      /* LED on Arduino */
 
 #define     RGB_RED_PIN             9
 #define     RGB_GREEN_PIN           6
@@ -30,8 +37,8 @@
 
 #define     ON                      HIGH
 #define     OFF                     LOW
-#define     BUTTON_DOWN             HIGH
-#define     BUTTON_UP               LOW
+#define     DOOR_CLOSED             HIGH
+#define     DOOR_OPEN               LOW
 
 #define     EVENT_CONNECTED         "0x1"   /* Event sent from master */
 #define     EVENT_OPENED            "0x2"   /* Event sent when door opened */
@@ -41,17 +48,19 @@
 #define     IS_CONNECTION_CHECK_MS  10000   /* How often to check the BT connection */
 #define     CHECK_BT_CONNECTION     1
 
+
 enum TState {
     CLOSED = 0,
     OPEN_TRIGGER,
-    OPENED,
-    CLOSE_TRIGGER
+    OPEN,
+    CLOSED_TRIGGER
 };
 
-SoftwareSerial btSerial (SERIAL_RX, SERIAL_TX);
+
+SoftwareSerial btSerial(SERIAL_RX, SERIAL_TX);
 
 static TState state = CLOSED;
-static int buttonState = BUTTON_UP;
+static int doorState = DOOR_CLOSED;
 
 
 /*
@@ -59,9 +68,9 @@ static int buttonState = BUTTON_UP;
  */
 void setup ()
 {
-    /* Init LED/ BUTTON pins */
+    /* Init LED/ SWITCH pins */
     pinMode(LED_PIN, OUTPUT);
-    pinMode(BUTTON_PIN, INPUT);
+    pinMode(SWITCH_PIN, INPUT);
 
     /* Init RGB pins */
     pinMode(RGB_RED_PIN, OUTPUT);
@@ -93,7 +102,7 @@ void loop()
 
 
 /*
- *
+ *      The main state machine
  */
 int stateMachine(void)
 {
@@ -116,12 +125,12 @@ int stateMachine(void)
         checkConnectionCounter++;
 #endif
 
-        buttonState = digitalRead(BUTTON_PIN);
+        doorState = digitalRead(SWITCH_PIN);
 
         switch(state)
         {
             case CLOSED:
-                if (buttonState == BUTTON_DOWN)
+                if (doorState == DOOR_OPEN)
                 {
                     state = OPEN_TRIGGER;
                 }
@@ -129,23 +138,23 @@ int stateMachine(void)
 
             case OPEN_TRIGGER:
                 digitalWrite(LED_PIN, ON);
-                btSerial.write(EVENT_OPENED);   /* Send EVENT_OPENED over BT */
+                btSerial.write(EVENT_OPENED);       /* Send EVENT_OPENED over BT */
                 if (!waitForResponse("OK", RECEIVE_TIMEOUT_MS))
                 {
                     state = CLOSED;
                     return false;
                 }
-                state = OPENED;
+                state = OPEN;
                 break;
 
-            case OPENED:
-                if (buttonState == BUTTON_UP)
+            case OPEN:
+                if (doorState == DOOR_CLOSED)
                 {
-                    state = CLOSE_TRIGGER;
+                    state = CLOSED_TRIGGER;
                 }
                 break;
 
-            case CLOSE_TRIGGER:
+            case CLOSED_TRIGGER:
                 digitalWrite(LED_PIN, OFF);
                 btSerial.write(EVENT_CLOSED);         /* Send EVENT_CLOSED over BT */
                 if (!waitForResponse("OK", RECEIVE_TIMEOUT_MS))
@@ -268,7 +277,6 @@ bool findSubstring(String str, String substr)
     }
 
     int i, j;
-
     for (i = 0, j = 0; i != strLength; i++)
     {
         if (str[i] == substr[j])
