@@ -70,7 +70,7 @@ void setup ()
 {
     /* Init LED/ SWITCH pins */
     pinMode(LED_PIN, OUTPUT);
-    pinMode(SWITCH_PIN, INPUT);
+    pinMode(SWITCH_PIN, INPUT_PULLUP);
 
     /* Init RGB pins */
     pinMode(RGB_RED_PIN, OUTPUT);
