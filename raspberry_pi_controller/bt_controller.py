@@ -15,12 +15,12 @@ class BT_Controller:
     def connect(self):
         """"""
         try:
-            self.sock.connect((self.bd_addr, port))
+            self.sock.connect((self.bd_addr, self.port))
             self.sock.settimeout(self.timeout)
-            print("Connected to HC-05 module, bd_addr: " + bd_addr)
+            print("Connected to HC-05 module, bd_addr: " + self.bd_addr)
             return True
         except:
-            print("Could not connect to bd_addr: " + bd_addr)
+            print("Could not connect to bd_addr: " + self.bd_addr)
             return False
 
     def start_arduino_listening_for_door_status(self):
@@ -40,7 +40,12 @@ class BT_Controller:
         self.check_time = time.time()
 
         while True:
-            data = self.sock.recv(3).decode()
+            try:
+                data = self.sock.recv(3).decode()
+            except:
+                print("Arduino bluetooth disconnected...")
+                return False
+
             print("Incoming: " + str(data))
 
             if "0x2" in data:
@@ -71,6 +76,6 @@ if __name__ == "__main__":
     if not bt_ctrl.start_arduino_listening_for_door_status():
         bt_ctrl.close()
         exit()
-    if not bt_ctrl.run()
+    if not bt_ctrl.run():
         bt_ctrl.close()
         exit()
