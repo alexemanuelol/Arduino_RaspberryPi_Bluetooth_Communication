@@ -18,14 +18,23 @@
  *                  waitForConnectionEstablished function and the RGB LED will become red.
  */
 
+/*
+ *      Includes
+ */
+
 #include <SoftwareSerial.h>
 #include <string.h>
 
-#define     SERIAL_RX               10
-#define     SERIAL_TX               11
+
+/*
+ *      Defines
+ */
+
+#define     SERIAL_RX_PIN           10
+#define     SERIAL_TX_PIN           11
 #define     BAUDRATE                9600
-#define     MAX_BUFFER              100
-#define     RECEIVE_TIMEOUT_MS      3000
+#define     MAX_BUFFER              100     /* The max size of the serial buffer in bytes */
+#define     RECEIVE_TIMEOUT_MS      3000    /* The amount of time to wait before timeout */
 
 #define     SWITCH_PIN              4       /* Reed Switch & Debug Button Switch*/
 
@@ -46,10 +55,14 @@
 #define     EVENT_IS_CONNECTION     "0x4"   /* Event sent to see if still BT connection */
 
 #define     IS_CONNECTION_CHECK_MS  10000   /* How often to check the BT connection */
-#define     CHECK_BT_CONNECTION     1
+#define     CHECK_BT_CONNECTION     1       /* Enable/ Disable continuous connection check */
 
 
-enum TState {
+/*
+ *      Enums
+ */
+
+enum DoorStateType {
     CLOSED = 0,
     OPEN_TRIGGER,
     OPEN,
@@ -57,9 +70,9 @@ enum TState {
 };
 
 
-SoftwareSerial btSerial(SERIAL_RX, SERIAL_TX);
+SoftwareSerial btSerial(SERIAL_RX_PIN, SERIAL_TX_PIN);
 
-static TState state = CLOSED;
+static DoorStateType state = CLOSED;
 static int doorState = DOOR_CLOSED;
 
 
@@ -264,7 +277,7 @@ void RGB_color(int red, int green, int blue)
 
 
 /*
- *      Find a substring withing a string
+ *      Find a substring within a string
  */
 bool findSubstring(String str, String substr)
 {
